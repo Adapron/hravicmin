@@ -231,6 +231,11 @@
       // socket.emit("question", { ...q, index });
     }
 
+    function requestPoints() {
+      console.log("requestPoints()");
+      sendMessage({ type: "requestPoints" });
+      // socket.emit("requestPoints");
+    }
     function sendGuess() {
       const val = parseInt(document.getElementById("guess-input").value);
       if (isNaN(val)) {
