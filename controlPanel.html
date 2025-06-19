@@ -301,6 +301,26 @@
 </script>
 
 <script>
+    function parseMessage(data) {
+        const json = JSON.parse(data);
+        switch (json.type) {
+            case "connect":
+                connected(json.name);
+                break;
+            case "points":
+                updatePoints(json.name, json.points);
+                break;
+            
+            case "vote":
+                voteReceive(json.name, json.vote);
+                break;
+            
+            
+        }
+    }
+</script>
+
+<script>
     //networking
 
     // Insert your WebSocket URL here
