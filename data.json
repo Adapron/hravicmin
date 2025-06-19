@@ -1,0 +1,35 @@
+[{
+    "dataType":"vote | points | winner | startVoting",
+    "name": "[name]",
+
+    "vote": "higher | lower",
+    "points": 123,
+
+    "value": 456,
+
+    "gameinfo": ""
+
+
+
+},
+
+{
+    "dataType": "vote",
+    "name": "adam",
+    "vote": "higher"
+},
+{
+    "dataType": "startVoting",
+    "value": 465
+},
+{
+    "dataType": "points",
+    "name": "adam",
+    "points": 123
+},
+{
+    "dataType": "winner",
+    "name": "adam"
+}
+
+]

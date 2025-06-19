@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Game Control Panel</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #111;
+      color: #eee;
+      padding: 2rem;
+      display: flex;
+      gap: 2rem;
+    }
+
+    #left, #right {
+      flex: 1;
+    }
+
+    h2 {
+      margin-top: 0;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    li {
+      background: #222;
+      margin: 0.3rem 0;
+      padding: 0.5rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    li:hover {
+      background: #333;
+    }
+
+    .highlight {
+      background: #004466 !important;
+    }
+
+    .btn {
+      background: #444;
+      color: white;
+      padding: 0.5rem 1rem;
+      margin: 0.5rem 0.3rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .btn:hover {
+      background: #666;
+    }
+
+    #question-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #444;
+      padding: 0.5rem;
+    }
+
+    .section {
+      margin-bottom: 2rem;
+    }
+
+    #selected-hotseat {
+      font-weight: bold;
+      color: #66c;
+    }
+
+    #guess-section input {
+      width: 120px;
+      padding: 0.4rem;
+      font-size: 1rem;
+      margin-right: 0.5rem;
+    }
+
+    #votes ul {
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #444;
+      padding: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="left">
+    <div id="status">Not connected</div>
+
+    <div class="section">
+      <h2>Connected Players</h2>
+      <ul id="player-list"></ul>
+      <button class="btn" onclick="resetConnections()">Reset Connections</button>
+    </div>
+
+    <div class="section">
+      <h2>Round Control</h2>
+      <button class="btn" onclick="reset()">Reset Round</button>
+      <button class="btn" onclick="displayAnswer()">Display Answer</button>
+      <button class="btn" onclick="displayVoters()">Display Voters</button>
+      <button class="btn" onclick="requestPoints()">Request Points</button>
+      <button class="btn" onclick="startVoting()">Start Voting</button>
+    </div>
+
+    
+
+    <div class="section" id="guess-section">
+      <h2>Initial Guess</h2>
+      <input type="number" id="guess-input" placeholder="Enter guess">
+      <button class="btn" onclick="sendGuess()">Send Guess</button>
+    </div>
+
+    <div class="section" id="votes">
+      <h2>Votes <span id="vote-progress"></span></h2>
+      <ul id="vote-list"></ul>
+    </div>
+  </div>
+
+  <div id="right">
+    <div class="section">
+      <h2>Questions <span id="selected-hotseat"></span></h2>
+      <ul id="question-list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const questions = [
+      { string: "Kolik km² má Evropa?", intendedTeacher: "novák", answer: 10000000 },
+      { string: "Kolik procent vody je slaná?", intendedTeacher: "svobodná", answer: 97 },
+      { string: "V jakém roce začala WW2?", intendedTeacher: "dalsijmeno", answer: 1939 },
+      { string: "Kolik znaků má ASCII?", intendedTeacher: "nevim_neznamjmena", answer: 128 },
+      { string: "Kolik protonů má uran?", intendedTeacher: "novák", answer: 92 },
+      // Add more here
+    ];
+
+    let connectedPlayers = new Set();
+    let currentHotseat = null;
+    let voteCount = 0;
+
+    const playerList = document.getElementById("player-list");
+    const questionList = document.getElementById("question-list");
+    const hotseatDisplay = document.getElementById("selected-hotseat");
+    const voteList = document.getElementById("vote-list");
+    const voteProgress = document.getElementById("vote-progress");
+
+    function connected(name) {
+      if (connectedPlayers.has(name)) return;
+      connectedPlayers.add(name);
+
+      const li = document.createElement("li");
+      li.textContent = name;
+      li.onclick = () => sendHotseat(name);
+      li.dataset.name = name;
+      playerList.appendChild(li);
+
+      updateVoteProgress();
+    }
+
+    function updatePoints(name, points) {
+      const li = [...playerList.children].find(li => li.dataset.name === name);
+      if (li) {
+        li.textContent = `${name} (${points} points)`;
+      } else {
+        console.warn(`Player ${name} not found in list.`);
+      }
+    }
+
+    function resetConnections() {
+      connectedPlayers.clear();
+      playerList.innerHTML = "";
+      voteList.innerHTML = "";
+      updateVoteProgress();
+      console.log("Connections reset.");
+    }
+
+    function sendHotseat(name) {
+      currentHotseat = name;
+      hotseatDisplay.textContent = `(Hotseat: ${name})`;
+
+      [...questionList.children].forEach(li => {
+        const q = questions[li.dataset.index];
+        if (q.intendedTeacher === name.toLowerCase()) {
+          li.classList.add("highlight");
+        } else {
+          li.classList.remove("highlight");
+        }
+      });
+
+      console.log(`sendHotseat(${name})`);
+      // socket.emit("hotseat", name);
+    }
+
+    function sendQuestion(index) {
+      const q = questions[index];
+      const confirmSend = confirm(`Send this question?\n\n${q.string}`);
+      if (!confirmSend) return;
+
+      console.log(`sendQuestion(${index}) →`, q);
+      // socket.emit("question", { ...q, index });
+    }
+
+    function sendGuess() {
+      const val = parseInt(document.getElementById("guess-input").value);
+      if (isNaN(val)) {
+        alert("Please enter a valid number.");
+        return;
+      }
+
+      console.log(`sendGuess(${val})`);
+      // socket.emit("guess", val);
+    }
+
+    function voteReceive(name, vote) {
+      const li = document.createElement("li");
+      li.textContent = `${name}: ${vote.toUpperCase()}`;
+      voteList.appendChild(li);
+      voteCount++;
+      updateVoteProgress();
+    }
+
+    function updateVoteProgress() {
+      voteProgress.textContent = `Voted: ${voteCount} / ${connectedPlayers.size}`;
+    }
+
+    function reset() {
+      console.log("reset()");
+      voteList.innerHTML = "";
+      voteCount = 0;
+      updateVoteProgress();
+      // socket.emit("reset");
+    }
+
+    function displayAnswer() {
+      console.log("displayAnswer()");
+      // socket.emit("displayAnswer");
+    }
+
+    function displayVoters() {
+      console.log("displayVoters()");
+      // socket.emit("displayVoters");
+    }
+
+    // Populate question list
+    questions.forEach((q, i) => {
+      const li = document.createElement("li");
+      li.textContent = q.string;
+      li.dataset.index = i;
+      li.onclick = () => sendQuestion(i);
+      questionList.appendChild(li);
+    });
+
+    // Demo usage:
+    // connected("novák");
+    // voteReceive("svobodná", "higher");
+    // voteReceive("dalsijmeno", "lower");
+  </script>
+
+
+
+<script>
+    //networking
+
+    // Insert your WebSocket URL here
+    const wsURL = "wss://s14822.lon1.piesocket.com/v3/1?api_key=RMDwmUusaJRbJXyAhyYTM93Ran8J9zB3aXEkitmG&notify_self=1";
+    let socket;
+    const server = "server";
+
+    try {
+      socket = new WebSocket(wsURL);
+
+      socket.addEventListener("open", () => {
+        document.getElementById("status").innerText = "Connected.";
+      });
+
+      socket.addEventListener("close", () => {
+        document.getElementById("status").innerText = "Disconnected.";
+      });
+
+      socket.addEventListener("error", err => {
+        document.getElementById("status").innerText = "Connection error.";
+        console.error(err);
+      });
+
+      socket.addEventListener("message", event => {
+        // Try to parse message as JSON
+        try {
+          parseMessage(event.data);
+        } catch {
+          alert("Text message: " + event.data);
+        }
+      });
+
+    } catch (e) {
+      document.getElementById("status").innerText = "WebSocket failed.";
+      console.error("Failed to connect:", e);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Player Client UI</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: #111;
+      color: #fff;
+      text-align: center;
+    }
+
+    #selection, #points, #voting {
+      display: none;
+      padding: 2rem;
+    }
+
+    #selection {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .participant {
+      width: 120px;
+      cursor: pointer;
+      border: 3px solid transparent;
+      border-radius: 12px;
+      padding: 0.5rem;
+      background: #222;
+      transition: 0.3s;
+    }
+
+    .participant:hover {
+      border-color: #00bcd4;
+      background: #333;
+    }
+
+    .participant img {
+      width: 100%;
+      border-radius: 8px;
+    }
+
+    .participant-name {
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    #points-value {
+      font-size: 3rem;
+      margin-top: 2rem;
+    }
+
+    #voting {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      background: #000;
+      z-index: 10;
+    }
+
+    .vote-button {
+      flex: 1;
+      height: 100%;
+      font-size: 3rem;
+      font-weight: bold;
+      background: #222;
+      color: white;
+      border: none;
+      transition: background 0.3s;
+      cursor: pointer;
+    }
+
+    .vote-button.lower {
+      background: #f44336;
+    }
+    .vote-button.higher {
+      background: #4caf50;
+    }
+
+    .vote-button:hover {
+      background: #eee;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div id="selection">
+    <!-- dynamically filled -->
+  </div>
+
+  <div id="points">
+    <h2 id="welcome-name"></h2>
+    <div id="points-value">Points: 0</div>
+  </div>
+
+  <div id="voting">
+    <button class="vote-button lower" onclick="vote('lower')">⬇️ nižší</button>
+
+    <button class="vote-button higher" onclick="vote('higher')">⬆️ vyšší</button>
+  </div>
+
+  <script>
+    const participants = {
+       "blahova":"fotky/blahova.png",
+       "brewus":"fotky/brewus.png", 
+       "krpec":"fotky/krpec.png",  
+       "latova":"fotky/latova.png",  
+       "radim":"fotky/radim.png",  
+       "rehacek":"fotky/rehacek.png",  
+       "zrubka":"fotky/zrubka.png"
+
+    };
+
+    const helloMessages = {
+        "blahova":"Dobrý den paní Blahová",
+        "brewus":"Dobrý den paní Brewus", 
+        "krpec":"Dobrý den pane Krpec",  
+        "latova":"Dobrý den paní Latová",  
+        "radim":"Čau Radime",  
+        "rehacek":"Dobrý den paní Řeháčková",  
+        "zrubka":"Dobrý den paní Zrubková"
+    }
+
+    let myName = null;
+    let myPoints = 0;
+
+    // Init selection
+    const selectionDiv = document.getElementById("selection");
+    for (const [name, url] of Object.entries(participants)) {
+      const div = document.createElement("div");
+      div.className = "participant";
+      div.onclick = () => selectPlayer(name);
+      div.innerHTML = `<img src="${url}" alt="${name}"><div class="participant-name">${name}</div>`;
+      selectionDiv.appendChild(div);
+    }
+
+    function selectPlayer(name) {
+      myName = name;
+      document.getElementById("selection").style.display = "none";
+      document.getElementById("points").style.display = "block";
+      document.getElementById("welcome-name").textContent = helloMessages[name] || `Welcome ${name}`;
+      announceconnection();
+
+      updatePoints(0);
+    }
+
+    function updatePoints(num) {
+      myPoints = num;
+      document.getElementById("points-value").textContent = `body: ${myPoints}`;
+    }
+
+    function startVoting(initialGuess) {
+      document.getElementById("voting").style.display = "flex";
+    }
+    document.getElementById("voting").style.display = "none";
+    function vote(choice) {
+      document.getElementById("voting").style.display = "none";
+      // Normally you'd emit this via WebSocket
+      announceVote(choice);
+      // Return to score view
+      document.getElementById("points").style.display = "block";
+    }
+
+    // Start with selection screen
+    document.getElementById("selection").style.display = "flex";
+
+    // For demo/test:
+    // Uncomment to simulate state after identity selected:
+    // selectPlayer("jan_novak");
+    // updatePoints(3);
+    // startVoting(100000000);
+  </script>
+
+  <script>
+    //parsing of messages
+    function parseMessage(data) {
+        const json = JSON.parse(data);
+        switch (json.type) {
+            case "welcome":
+            case "points":
+                if (json.name === myName) {
+                    updatePoints(json.points);
+                }
+                break;
+            case "startVoting":
+                startVoting(json.initialGuess);
+                break;
+            case "winner":
+                if (json.name === myName) {
+                    alert(`Congratulations ${myName}, you won!`);
+                } else {
+                    alert(`Player ${json.name} won with ${json.points} points!`);
+                }
+                break;
+            
+        }
+        
+
+    }
+
+  </script>
+
+  <script>
+    //message sending
+    function sendMessage(data){
+        const message = JSON.stringify(data);
+        socket.send(message);
+    }
+    function announceVote(vote){
+        
+        const message = {
+            type: "vote",
+            name: myName,
+            vote: vote
+        };
+        sendMessage(message);
+    }
+    function announceconnection(){
+        const message = {
+            type: "connect",
+            name: myName
+        };
+        sendMessage(message);
+    }
+  </script>
+
+  <script>
+    //networking
+
+    // Insert your WebSocket URL here
+    const wsURL = "wss://s14822.lon1.piesocket.com/v3/1?api_key=RMDwmUusaJRbJXyAhyYTM93Ran8J9zB3aXEkitmG&notify_self=1";
+    let socket;
+    const server = "server";
+
+    try {
+      socket = new WebSocket(wsURL);
+
+      socket.addEventListener("open", () => {
+        document.getElementById("status").innerText = "Connected.";
+      });
+
+      socket.addEventListener("close", () => {
+        document.getElementById("status").innerText = "Disconnected.";
+      });
+
+      socket.addEventListener("error", err => {
+        document.getElementById("status").innerText = "Connection error.";
+        console.error(err);
+      });
+
+      socket.addEventListener("message", event => {
+        // Try to parse message as JSON
+        try {
+          parseMessage(event.data);
+        } catch {
+          alert("Text message: " + event.data);
+        }
+      });
+
+    } catch (e) {
+      document.getElementById("status").innerText = "WebSocket failed.";
+      console.error("Failed to connect:", e);
+    }
+  </script>
+
+</body>
+</html>
