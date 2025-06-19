@@ -133,13 +133,26 @@
 
   <script>
     const questions = [
-      { string: "Kolik km² má Evropa?", intendedTeacher: "novák", answer: 10000000 },
-      { string: "Kolik procent vody je slaná?", intendedTeacher: "svobodná", answer: 97 },
-      { string: "V jakém roce začala WW2?", intendedTeacher: "dalsijmeno", answer: 1939 },
-      { string: "Kolik znaků má ASCII?", intendedTeacher: "nevim_neznamjmena", answer: 128 },
-      { string: "Kolik protonů má uran?", intendedTeacher: "novák", answer: 92 },
-      // Add more here
-    ];
+        { string: "Kolik slov je v díle Babička od Boženy Němcové?", intendedTeacher: "blahova", answer: 72250 }, //kniha babička byla vydána v roce 1855, první vydání mělo 18 kapitol, 72 250 slov. 
+        { string: "Kolik existuje jednopísmenných slov v češtině?", intendedTeacher: "blahova", answer: 10 }, // tyto slova jsou: k o s u v z a i á ó (a, i mají dva významy)
+        { string: "Kolik hlásek obsahuje mluvená angličtina?", intendedTeacher: "rehacek", answer: 44 }, // 19 samohlásek a 25 souhlásek
+        { string: "kdy byl Hamlet od Shakespeara napsán?", intendedTeacher: "latova", answer: 1600 }, //přibližně.  shakespeare žil 1564 - 1616. hamlet je nejdelší jeho hra.
+        { string: "kolik her je považováno za Shakespearovy?", intendedTeacher: "rehacek", answer: 39 }, // 16 komedií, 11 historií, 12 tragédií
+        { string: "Kolik lidí mluví anglicky?", intendedTeacher: "latova", answer: 153000000000}, // pouze 25% z nich jako rodilí mluvčí
+        { string: "Kolik je √3?", intendedTeacher: "krpec", answer: 1.732050807568877},
+        { string: "kolik prvočísel je mezi 1 a 1000?", intendedTeacher: "krpec", answer: 168}, //mezi 1 a 100 je jich 25
+        { string: "kolik metrů čtverečních má evropa?", intendedTeacher: "radim", answer: 10186000}, //druhý nejmenší kontinent, první je austrálie - 7.7M km^2
+        { string: "Kolik MJ je třeba na vystřelení jednoho člověka pryč ze země? (100% účinnost)", intendedTeacher: "radim", answer: 5000}, // G*M*m / R
+        { string: "Kolik lidí mluví španělsky?", intendedTeacher: "brewus", answer: 595000000}, // 486M z toho rodilí mluvčí, 82%
+        { string: "Kolik států má španělštinu jako úřední jazyk?", intendedTeacher: "brewus", answer: 20}, // Mexico, Colombia, Spain, Argentina, Peru je 5 nejvíc lidí
+        { string: "Který rok proběhla první moderní olympiáda?", intendedTeacher: "zrubka", answer: 1896}, //první PRIVNÍ olympiáda byla 776 přnl v Olympii, Řecko
+        { string: "Jaký je obsah hřiště na ledový hokej?", intendedTeacher: "zrubka", answer: 1800} //první PRIVNÍ olympiáda byla 776 přnl v Olympii, Řecko
+
+
+
+
+
+    ]
 
     let connectedPlayers = new Set();
     let currentHotseat = null;
@@ -173,12 +186,20 @@
       }
     }
 
+    function startVoting(){
+        sendMessage({ 
+            type: "startVoting",
+            value: initialGuess
+        });
+    }
+
     function resetConnections() {
       connectedPlayers.clear();
       playerList.innerHTML = "";
       voteList.innerHTML = "";
       updateVoteProgress();
       console.log("Connections reset.");
+      sendMessage({type: "ping"});
     }
 
     function sendHotseat(name) {
@@ -215,6 +236,7 @@
       }
 
       console.log(`sendGuess(${val})`);
+      sendMessage({ type: "guess", guess: val });
       // socket.emit("guess", val);
     }
 
@@ -235,16 +257,20 @@
       voteList.innerHTML = "";
       voteCount = 0;
       updateVoteProgress();
+      sendMessage({ type: "resetRound" });
       // socket.emit("reset");
     }
 
     function displayAnswer() {
       console.log("displayAnswer()");
+      sendMessage({ type: "displayAnswer" });
+
       // socket.emit("displayAnswer");
     }
 
     function displayVoters() {
       console.log("displayVoters()");
+        sendMessage({ type: "displayVoters" });
       // socket.emit("displayVoters");
     }
 
@@ -263,7 +289,16 @@
     // voteReceive("dalsijmeno", "lower");
   </script>
 
+<script>
+    //sendMessages
+    function sendMessage(data){
+        const message = JSON.stringify(data);
+        socket.send(message);
+    }
 
+    
+
+</script>
 
 <script>
     //networking
