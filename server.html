@@ -171,7 +171,7 @@
         font-weight: bold;
         background: #222;
         border: 6px solid #fff;
-        border-radius: 50%;
+        border-radius: 50px;
         padding: 2rem 3rem;
         color: white;
         z-index: 1000;
@@ -200,7 +200,7 @@
     <div id="guess">?</div>
     <div class="side" id="right-votes"></div>
   </div>
-  <div id="status">Not connected</div>
+  <div id="status" style="display: none;">Not connected</div>
 
   <script>
     const playerImages = {
@@ -394,12 +394,12 @@
     
 
     // Example usage
-    setPlayer("radim");
-    setQuestion("Kolik km² má Evropa?");
-    setInitialGuess(100000000);
-    addVote("blahova", "higher");
-    addVote("brewus", "lower");
-    addVote("krpec", "lower");
+    //setPlayer("radim");
+    //setQuestion("Kolik km² má Evropa?");
+    //setInitialGuess(100000000);
+    //addVote("blahova", "higher");
+    //addVote("brewus", "lower");
+    //addVote("krpec", "lower");
     // Uncomment to simulate reveal:
     //showAnswer("left", 10);
     // Uncomment to reset:
