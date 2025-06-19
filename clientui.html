@@ -185,8 +185,9 @@
         switch (json.type) {
             case "welcome":
             case "points":
-                if (json.name === myName) {
+                if (json.name == myName) {
                     updatePoints(json.points);
+                    console.log(`received ${json.points} points.`);
                 }
                 break;
             case "startVoting":
