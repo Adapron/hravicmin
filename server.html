@@ -320,6 +320,11 @@
             { value: 1e6,  label: "milion" },
         ];
 
+        //if number is less than 1000, return it as is
+        if (Math.abs(num) < 1000) {
+            return num.toString().replace(".", ",");
+        }
+
         // Handle very small numbers and floats
         if (Math.abs(num) < 1e6) {
             return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -370,13 +375,16 @@
         const stepTime = duration / steps;
         const increment = number / steps;
 
+        const shouldFloor = number % 1 === 0; // Check if the number is an integer
+
         const counter = setInterval(() => {
             current += increment;
             if (current >= number) {
             current = number;
             clearInterval(counter);
             }
-            el.textContent = formatCzechNumber(current);
+            let displayValue = shouldFloor ? Math.floor(current) : current.toFixed(5);
+            el.textContent = formatCzechNumber(displayValue);
         }, stepTime);
 
         // After counting, slide to side
@@ -533,7 +541,7 @@
                 setQuestion(questions[json.questionID].string);
             break;
 
-            case "guess": //obsolete, use startVoting
+            case "guess": 
                 console.log("Guess received:", json.guess);
                 setInitialGuess(json.guess);
             break;
@@ -544,9 +552,6 @@
             break;
 
             case "startVoting":
-                console.log("Starting voting with initial guess:", json.initialGuess);
-                setInitialGuess(json.initialGuess);
-                
                 //reset memorized votes
                 memorizedVotes = {};
             
