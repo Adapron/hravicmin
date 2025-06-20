@@ -25,7 +25,7 @@
     }
 
     .participant {
-      width: 120px;
+      width: 360px;
       cursor: pointer;
       border: 3px solid transparent;
       border-radius: 12px;
@@ -147,7 +147,7 @@
       const div = document.createElement("div");
       div.className = "participant";
       div.onclick = () => selectPlayer(name);
-      div.innerHTML = `<img src="${url}" alt="${name}"><div class="participant-name">${name}</div>`;
+      div.innerHTML = `<img src="${url}" alt="${name}"><div class="participant-name">${displayNames[name]}</div>`;
       selectionDiv.appendChild(div);
     }
 
@@ -273,15 +273,12 @@
       socket = new WebSocket(wsURL);
 
       socket.addEventListener("open", () => {
-        document.getElementById("status").innerText = "Connected.";
       });
 
       socket.addEventListener("close", () => {
-        document.getElementById("status").innerText = "Disconnected.";
       });
 
       socket.addEventListener("error", err => {
-        document.getElementById("status").innerText = "Connection error.";
         console.error(err);
       });
 
@@ -295,7 +292,6 @@
       });
 
     } catch (e) {
-      document.getElementById("status").innerText = "WebSocket failed.";
       console.error("Failed to connect:", e);
     }
   </script>
