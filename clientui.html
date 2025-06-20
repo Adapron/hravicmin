@@ -191,7 +191,12 @@
                 }
                 break;
             case "startVoting":
-                startVoting(json.initialGuess);
+                let currentHotseat = json.hotseat;
+                if (currentHotseat === myName) {
+                  //my turn to guess, no voting
+                } else {
+                  startVoting(json.initialGuess);
+                }
                 break;
             case "winner":
                 if (json.name === myName) {
