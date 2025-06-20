@@ -285,7 +285,7 @@
         //trigger animation
         document.getElementById("guess").classList.add("hotseat-enter");
         setTimeout(() => {
-            document.getElementById("guess").textContent = number.toLocaleString();
+            document.getElementById("guess").textContent = formatCzechNumber(number);
             
         }, 300);
         setTimeout(() => {
@@ -310,7 +310,29 @@
         container.appendChild(el);
     }
 
+    function formatCzechNumber(num) {
+        const suffixes = [
+            { value: 1e15, label: "biliard" },
+            { value: 1e12, label: "bilion" },
+            { value: 1e9,  label: "miliard" },
+            { value: 1e6,  label: "milion" },
+        ];
 
+        // Handle very small numbers and floats
+        if (Math.abs(num) < 1e6) {
+            return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+        }
+
+        for (const { value, label } of suffixes) {
+            if (Math.abs(num) >= value) {
+                let scaled = num / value;
+                let fixed = Number.isInteger(scaled) ? scaled : scaled.toFixed(2);
+                return fixed.toString().replace(".", ",") + " " + label + (scaled >= 2 ? (label.endsWith("d") ? "y" : "y") : "");
+            }
+        }
+
+        return num.toString(); // fallback
+    }
     function reset() {
         //cleat votes
         memorizedVotes = {};
@@ -333,6 +355,13 @@
         el.textContent = "0";
         el.style.transform = "translate(-50%, -50%) scale(1)";
 
+        //check if its float
+        if (number % 1 !== 0) {
+            el.style.fontSize = "3rem"; // Smaller font for float
+        } else {
+            el.style.fontSize = "4rem"; // Larger font for integer
+        }
+
         let current = 0;
         const duration = 1500;
         const steps = 60;
@@ -345,7 +374,7 @@
             current = number;
             clearInterval(counter);
             }
-            el.textContent = Math.floor(current).toLocaleString();
+            el.textContent = formatCzechNumber(current);
         }, stepTime);
 
         // After counting, slide to side
@@ -357,13 +386,15 @@
             el.style.opacity = "0";
         }, duration + 500);
 
+        
+
         // After slide-out, remove from screen and place final answer circle
         setTimeout(() => {
             el.style.display = "none";
 
             const answerEl = document.createElement("div");
             answerEl.className = "answer " + side;
-            answerEl.textContent = number.toLocaleString();
+            answerEl.textContent = formatCzechNumber(number);
             document.getElementById("scale").appendChild(answerEl);
 
             const correct = side === "left" ? "lower" : "higher";

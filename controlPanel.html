@@ -68,7 +68,7 @@
       overflow-y: auto;
       border: 1px solid #444;
       padding: 0.5rem;
-      font-size:2.5rem;
+      font-size:3.5rem;
     }
 
     .section {
@@ -306,7 +306,12 @@
       // socket.emit("requestPoints");
     }
     function sendGuess() {
-      const val = parseInt(document.getElementById("guess-input").value);
+      let val = parseFloat(document.getElementById("guess-input").value);
+      //if it is int convert to int
+      if (Number.isInteger(val)) {
+        val = parseInt(val);
+      }
+
       if (isNaN(val)) {
         alert("Please enter a valid number.");
         return;
@@ -354,6 +359,12 @@
       console.log("reset()");
       voteList.innerHTML = "";
       voteCount = 0;
+      //clear current hotseat
+      currentHotseat = null;
+      hotseatDisplay.textContent = "";
+      [...questionList.children].forEach(li => {
+        li.classList.remove("highlight");
+      });
       updateVoteProgress();
       sendMessage({ type: "resetRound" });
       // socket.emit("reset");
