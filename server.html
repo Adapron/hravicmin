@@ -162,6 +162,23 @@
       margin: 0 auto;
     }
 
+    #floating-question {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 7rem;
+        font-weight: bold;
+        background: #222;
+        border: 4px solid #fff;
+        border-radius: 50px;
+        padding: 1rem 2rem;
+        color: white;
+        z-index: 1000;
+        opacity: 0;
+        transition: opacity 0.3s ease, transform 0.6s ease;
+    }
+
     .answer.left { left: -40px; }
     .answer.right { right: -40px; }
     #floating-answer {
@@ -169,7 +186,7 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        font-size: 4rem;
+        font-size: 7rem;
         font-weight: bold;
         background: #222;
         border: 6px solid #fff;
@@ -181,10 +198,82 @@
         transition: opacity 0.3s ease, transform 0.6s ease;
     }
 
+    #scoreboard {
+        position: fixed;
+        top: 5%;
+        left: 5%;
+        width: 90%;
+        height: 90%;
+        background: #222;
+        padding: 1rem;
+        border: 4px solid #444;
+        border-radius: 10px;
+        color: white;
+        z-index: 1000;
+    }
+    #scoreboard-content {
+        overflow-y: auto;
+        height: 100%;
+    }
+    #scoreboard h2 {
+        text-align: center;
+        margin-bottom: 1rem;
+    }
+    #scoreboard-list {
+        list-style: none;
+        padding: 0;
+    }
+    #scoreboard-list li {
+        padding: 0.5rem;
+        padding-left: 5rem;
+        border-bottom: 1px solid #444;
+        display: flex;
+        justify-content: space-between;
+        font-size: 5rem;
+    }
+    .scoreboard-points {
+        font-size: 5rem;
+        color: #ccc;
+        padding-right: 5rem;
+    }
+
   </style>
 </head>
 <body>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+      <canvas id="confetti-canvas" style="
+          position: fixed;
+          top: 0;
+          left: 0;
+          width: 100vw;
+          height: 100vh;
+          pointer-events: none;
+          z-index: 9999;
+          background: transparent;       /* explicitly set */
+      "></canvas>
+
+    <div id = "scoreboard">
+      <div id="scoreboard-content">
+        <h2>Scoreboard</h2>
+        <ul id="scoreboard-list">
+          <li>Blahová <div class="scoreboard-points">0</div></li>
+          <li>Brewus <div class="scoreboard-points">0</div></li>
+          <li>Krpec <div class="scoreboard-points">0</div></li>
+          <li>Latová <div class="scoreboard-points">0</div></li>
+          <li>Radim <div class="scoreboard-points">0</div></li>
+          <li>Reháčková <div class="scoreboard-points">0</div></li>
+          <li>Zrubková <div class="scoreboard-points">0</div></li>
+        </ul>
+      </div>
+
+
+    </div>
+
+
+
     <div id="floating-answer" style="display:none;">0</div>
+    <div id="floating-question" style="display:none;"></div>
 
   <div id="question">???</div>
 
@@ -248,6 +337,39 @@
 
     var guess = 0;
 
+
+    function populateScoreboard(){
+      const scoreboard = document.getElementById("scoreboard-list");
+      scoreboard.innerHTML = ""
+      //foreach player in points add a list element
+      //sort pointsData
+      const sortedPoints = Object.entries(pointsData)
+        .filter(([name]) => name !== "none")
+        .sort(([, pointsA], [, pointsB]) => pointsB - pointsA);
+
+      for (const [name, points] of sortedPoints) {
+        const li = document.createElement("li");
+        li.textContent = playerDisplayNames[name];
+
+        const pointsDiv = document.createElement("div");
+        pointsDiv.className = "scoreboard-points";
+        pointsDiv.textContent = points;
+
+        li.appendChild(pointsDiv);
+        scoreboard.appendChild(li);
+      }
+    }
+
+    const scoreboard = document.getElementById("scoreboard");
+    function showScoreboard() {
+        scoreboard.style.display = "block";
+        populateScoreboard();
+    }
+
+    function hideScoreboard() {
+        scoreboard.style.display = "none";
+    }
+
     function setHotseat(name) {
         const hotseat = document.getElementById("hotseat");
         const img = document.getElementById("hotseat-img");
@@ -278,7 +400,17 @@
 
 
     function setQuestion(text) {
-      document.getElementById("question").textContent = text;
+      //display question in the center firts
+      const floatingQuestion = document.getElementById("floating-question");
+      floatingQuestion.textContent = text;
+      floatingQuestion.style.display = "block";
+      floatingQuestion.style.opacity = "1";
+      floatingQuestion.style.transform = "translate(-50%, -50%) scale(1)";
+      setTimeout(() => {
+          floatingQuestion.style.opacity = "0";
+          floatingQuestion.style.transform = "translate(-50%, -150%) scale(1)";
+          document.getElementById("question").textContent = text;
+      }, 5000);
     }
 
     function setInitialGuess(number) {
@@ -315,9 +447,9 @@
     function formatCzechNumber(num) {
         const suffixes = [
             { value: 1e15, label: "biliard" },
-            { value: 1e12, label: "bilion" },
+            { value: 1e12, label: "bilionů" },
             { value: 1e9,  label: "miliard" },
-            { value: 1e6,  label: "milion" },
+            { value: 1e6,  label: "milionů" },
         ];
 
         //if number is less than 1000, return it as is
@@ -340,7 +472,10 @@
 
         return num.toString(); // fallback
     }
+    hideScoreboard();
+
     function reset() {
+        hideScoreboard();
         //cleat votes
         memorizedVotes = {};
         votes.higher = [];
@@ -376,6 +511,7 @@
         const increment = number / steps;
 
         const shouldFloor = number % 1 === 0; // Check if the number is an integer
+        playSound("countup");
 
         const counter = setInterval(() => {
             current += increment;
@@ -389,6 +525,10 @@
 
         // After counting, slide to side
         setTimeout(() => {
+            if(side === "center") {
+                el.style.transform = "translate(-50%, -100%) scale(1.2)";
+                return;
+            } 
             el.style.transition = "transform 0.8s ease-in-out, opacity 0.8s";
             el.style.transform = side === "left"
             ? "translate(-250%, -50%) scale(0.8)"
@@ -401,6 +541,35 @@
         // After slide-out, remove from screen and place final answer circle
         setTimeout(() => {
             el.style.display = "none";
+
+            if(side === "center") {
+                //display confetti
+                const canvas = document.getElementById('confetti-canvas');
+                const confetti = window.confetti.create(canvas, { resize: true, useWorker: true });
+
+                // Example burst
+                playSound("yippee");
+
+                confetti({
+                  particleCount: 150,
+                  spread: 90,
+                  origin: { y: 0.6 }
+                });
+
+
+                document.querySelectorAll(`.vote[data-vote='higher']`).forEach(v => v.classList.add("red"));
+                document.querySelectorAll(`.vote[data-vote='lower']`).forEach(v => v.classList.add("red"));
+
+                votes["lower"].forEach(name => {
+                    pointsData[hotseatName] += 10; // Add 10 points for hotseat player
+                });
+
+                votes["higher"].forEach(name => {
+                    pointsData[hotseatName] += 10; // Add 10 points for hotseat player
+                });
+                
+                return; // No need to create an answer element for center
+            }
 
             const answerEl = document.createElement("div");
             answerEl.className = "answer " + side;
@@ -425,6 +594,8 @@
 
         }, duration + 1600);
 
+        
+
 
     }
     var memorizedVotes = {};
@@ -439,6 +610,7 @@
         const delay = 100; // Delay in milliseconds
         let index = 0;
         const entries = Object.entries(memorizedVotes);
+        
         const interval = setInterval(() => {
             if (index >= entries.length) {
                 clearInterval(interval);
@@ -476,12 +648,11 @@
         { string: "Kolik je √3?", intendedTeacher: "krpec", answer: 1.732050807568877},
         { string: "kolik prvočísel je mezi 1 a 1000?", intendedTeacher: "krpec", answer: 168}, //mezi 1 a 100 je jich 25
         { string: "kolik metrů čtverečních má evropa?", intendedTeacher: "radim", answer: 10186000}, //druhý nejmenší kontinent, první je austrálie - 7.7M km^2
-        { string: "Kolik MJ je třeba na vystřelení jednoho člověka pryč ze země? (100% účinnost)", intendedTeacher: "radim", answer: 5000}, // G*M*m / R
+        { string: "Kolik J je třeba na vystřelení jednoho člověka pryč ze země? (100% účinnost)", intendedTeacher: "radim", answer: 5000000000}, // G*M*m / R
         { string: "Kolik lidí mluví španělsky?", intendedTeacher: "brewus", answer: 595000000}, // 486M z toho rodilí mluvčí, 82%
         { string: "Kolik států má španělštinu jako úřední jazyk?", intendedTeacher: "brewus", answer: 20}, // Mexico, Colombia, Spain, Argentina, Peru je 5 nejvíc lidí
         { string: "Který rok proběhla první moderní olympiáda?", intendedTeacher: "zrubka", answer: 1896}, //první PRIVNÍ olympiáda byla 776 přnl v Olympii, Řecko
-        { string: "Jaký je obsah hřiště na ledový hokej?", intendedTeacher: "zrubka", answer: 1800} //první PRIVNÍ olympiáda byla 776 přnl v Olympii, Řecko
-
+        { string: "Jaký je obsah hřiště na ledový hokej?", intendedTeacher: "zrubka", answer: 1800} //60*30
 
 
 
@@ -497,10 +668,23 @@
     function parseMessage(data) {
         const json = JSON.parse(data);
         switch (json.type) {
+            case "showScoreboard":
+                console.log("Scoreboard requested");
+                showScoreboard();
+              playSound("vote");
+
+                break;
             case "vote":
+              playSound("vote");
             addVoteToMemory(json.name, json.vote);
             console.log("Vote received from " + json.name + ": " + json.vote);
             break;
+
+            case "requestWin":
+                announceWinner();
+                playSound("yippee");
+                console.log("Winner announced");
+                break;
 
             case "connect":
             console.log("Connection established with " + json.name);
@@ -508,11 +692,17 @@
 
             case "displayAnswer":
                 var value = questions[currentqid].answer;
+
                 var side = null;
+
+
                 if(value < guess){
                     side = "left";
-                } else {
+                } else if(value > guess){
                     side = "right";
+                }else{
+                  //spot on
+                  side = "center";
                 }
                 showAnswer(side, value);
             break;
@@ -538,10 +728,12 @@
             case "sendQuestion":
                 console.log("Question received:", json.questionID);
                 currentqid = json.questionID;
+                playSound("allVoted");
                 setQuestion(questions[json.questionID].string);
             break;
 
             case "guess": 
+                playSound("allVoted");
                 console.log("Guess received:", json.guess);
                 setInitialGuess(json.guess);
             break;
@@ -549,6 +741,7 @@
             case "hotseat":
                 console.log("Hot seat player set to:", json.name);
                 setHotseat(json.name);
+                playSound("allVoted");
             break;
 
             case "startVoting":
@@ -560,6 +753,25 @@
             
 
             
+        }
+    }
+  </script>
+
+  <script>
+    //audio control
+    const allSounds = {
+        "vote": new Audio("sounds/vote.mp3"),
+        "countup": new Audio("sounds/countup.mp3"),
+        "allVoted": new Audio("sounds/allvoted.mp3"),
+        "yippee": new Audio("sounds/yippee.mp3"),
+    };
+
+    function playSound(soundName) {
+        if (allSounds[soundName]) {
+            allSounds[soundName].currentTime = 0; // Reset to start
+            allSounds[soundName].play().catch(err => console.error("Error playing sound:", err));
+        } else {
+            console.warn("Sound not found:", soundName);
         }
     }
   </script>
@@ -594,10 +806,30 @@
 
     }
 
-    function announceWinner(name){
+    function announceWinner(){
+        //pick the one with most points
+        let maxPoints = -1;
+        let name = "none";
+        for (const player in pointsData) {
+            if (pointsData[player] > maxPoints) {
+                maxPoints = pointsData[player];
+                name = player;
+            }
+        }
+        setHotseat(name); // Set the hotseat to the winner
+        //display confetti
+        const canvas = document.getElementById('confetti-canvas');
+        const confetti = window.confetti.create(canvas, { resize: true, useWorker: true });
+        confetti({
+            particleCount: 300,
+            spread: 100,
+            origin: { y: 0.6 }
+        });
+        setQuestion("Vítěz je " + playerDisplayNames[name] + " s " + formatCzechNumber(maxPoints) + " body!");
         const json = {
             type: "winner",
-            name: name
+            name: name,
+            points: maxPoints
         };
         sendMessage(json);
         console.log("Announced winner:", name);

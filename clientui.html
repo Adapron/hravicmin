@@ -192,8 +192,17 @@
     //parsing of messages
     function parseMessage(data) {
         const json = JSON.parse(data);
+        if (myName == null){
+          //ignore messages before player selection
+          return;
+        }
         switch (json.type) {
-            case "welcome":
+            case "kickAll":
+              //reload the page
+
+                location.reload();
+                break;
+              break;
             case "points":
                 if (json.name == myName) {
                     updatePoints(json.points);
@@ -212,7 +221,7 @@
                 if (json.name === myName) {
                     alert(`Congratulations ${myName}, you won!`);
                 } else {
-                    alert(`Player ${json.name} won with ${json.points} points!`);
+                    alert(`Vítěz je ${json.name} s ${json.points} body!`);
                 }
                 break;
             case "ping":

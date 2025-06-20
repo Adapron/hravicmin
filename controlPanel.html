@@ -110,9 +110,12 @@
     <div id="status">Not connected</div>
 
     <div class="section">
+      <div>Connected players: <span id="player-count">0</span></div>
       <ul id="player-list" class="scroll-list"></ul>
       <button class="btn" onclick="requestPoints()">Request Points</button>
       <button class="btn" onclick="resetConnections()">Reset Connections</button>
+      <button class="btn" onclick="kickAll()">Kick all</button>
+      <button class="btn" onclick="requestWin()">End game</button>
     </div>
 
     <div class="section">
@@ -125,9 +128,10 @@
       <button class="btn" onclick="sendGuess()">Send Guess</button>
     </div>
     <div class="section">
-      <button class="btn" id="resetRound" onclick="reset()">Reset Round</button>
       <button class="btn" id = "displayVoters" onclick="displayVoters()">Display Voters</button>
       <button class="btn unhighlight" id="displayAnswer" onclick="displayAnswer()" disabled="">Display Answer</button>
+      <button class="btn" id="showScoreboard" onclick="showScoreboard()" disabled="">Display Scoreboard</button>
+      <button class="btn" id="resetRound" onclick="reset()">Reset Round</button>
     </div>
 
     
@@ -177,7 +181,33 @@
     const voteProgress = document.getElementById("vote-progress");
 
     var stepIndex = 0;
+
+    function requestWin() {
+      //request confirmation before ending the game
+      if (!confirm("Are you sure you want to end the game?")) return;
+      console.log("Game ended.");
+      sendMessage({ type: "requestWin" });
+    }
+
+    function showScoreboard(){
+      //request confirmation before showing the scoreboard
+      setStep(7);
+      console.log("Showing scoreboard.");
+      sendMessage({ type: "showScoreboard" });
+      //socket.emit("showScoreboard");
+    }
     
+    function kickAll() {
+      //request confirmation before kicking all players
+      if (!confirm("Are you sure you want to kick all players?")) return;
+      connectedPlayers.clear();
+      playerList.innerHTML = "";
+      voteList.innerHTML = "";
+      updateVoteProgress();
+      console.log("All players kicked.");
+      sendMessage({ type: "kickAll" });
+    }
+
     function setStep(index){
       //highlighting controls relevant to the current step
       stepIndex = index;
@@ -189,6 +219,7 @@
         document.getElementById("votes"),
         document.getElementById("displayVoters"),
         document.getElementById("displayAnswer"),
+        document.getElementById("showScoreboard"),
         document.getElementById("resetRound")
       ]
 
@@ -229,7 +260,10 @@
     setStep(0);
 
     function connected(name) {
+
       if (connectedPlayers.has(name)) return;
+      const numberOfPlayers = document.getElementById("player-count");
+      numberOfPlayers.textContent = connectedPlayers.size + 1; // +1 for the new player
       connectedPlayers.add(name);
 
       const li = document.createElement("li");
