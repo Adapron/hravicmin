@@ -184,7 +184,7 @@
 <body>
     <div id="floating-answer" style="display:none;">0</div>
 
-  <div id="question">Waiting for question...</div>
+  <div id="question">???</div>
 
   <div id="hotseat">
     <div class="circle"><img id="hotseat-img" src="" alt="hotseat"></div>
@@ -204,6 +204,7 @@
 
   <script>
     const playerImages = {
+       "none": "fotky/none.png",
        "blahova":"fotky/blahova.png",
        "brewus":"fotky/brewus.png", 
        "krpec":"fotky/krpec.png",  
@@ -212,6 +213,17 @@
        "rehacek":"fotky/rehacek.png",  
        "zrubka":"fotky/zrubka.png"
 
+    };
+
+    const playerDisplayNames = {
+        "none": "???",
+        "blahova": "Blahová",
+        "brewus": "Brewus",
+        "krpec": "Krpec",
+        "latova": "Latová",
+        "radim": "Trunkát",
+        "rehacek": "Reháčková",
+        "zrubka": "Zrubková"
     };
 
     var hotseatName = "none"; // Default hotseat player
@@ -234,7 +246,7 @@
 
     var guess = 0;
 
-    function setPlayer(name) {
+    function setHotseat(name) {
         const hotseat = document.getElementById("hotseat");
         const img = document.getElementById("hotseat-img");
         const label = document.getElementById("hotseat-name");
@@ -247,7 +259,7 @@
         setTimeout(() => {
             // Update content after fade-out
             img.src = playerImages[name] || "https://via.placeholder.com/150";
-            label.textContent = name;
+            label.textContent = playerDisplayNames[name];
 
             // Animate in
             hotseat.classList.remove("hotseat-leave");
@@ -302,9 +314,12 @@
         memorizedVotes = {};
         votes.higher = [];
         votes.lower = [];
+        document.getElementById("question").textContent = "???";
+        setHotseat("none");
         document.getElementById("left-votes").innerHTML = "";
         document.getElementById("right-votes").innerHTML = "";
         document.getElementById("guess").textContent = "?";
+        
         const existingAnswers = document.querySelectorAll(".answer");
         existingAnswers.forEach(e => e.remove());
     }
@@ -490,7 +505,7 @@
 
             case "hotseat":
                 console.log("Hot seat player set to:", json.name);
-                setPlayer(json.name);
+                setHotseat(json.name);
             break;
 
             case "startVoting":

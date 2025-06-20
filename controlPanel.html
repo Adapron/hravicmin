@@ -13,7 +13,7 @@
       gap: 2rem;
     }
 
-    #left, #right {
+    #column {
       flex: 1;
     }
 
@@ -44,6 +44,10 @@
       background: #004466 !important;
     }
 
+    .unhighlight {
+      background: #222 !important;
+    }
+
     .btn {
       background: #444;
       color: white;
@@ -52,15 +56,15 @@
       border: none;
       border-radius: 4px;
       cursor: pointer;
-      font-size: 1rem;
+      font-size: 3rem;
     }
 
     .btn:hover {
       background: #666;
     }
 
-    #question-list {
-      max-height: 300px;
+    .scroll-list {
+      height: 400px;
       overflow-y: auto;
       border: 1px solid #444;
       padding: 0.5rem;
@@ -68,6 +72,7 @@
 
     .section {
       margin-bottom: 2rem;
+      font-size: 3rem;
     }
 
     #selected-hotseat {
@@ -75,60 +80,64 @@
       color: #66c;
     }
 
+    #status {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+
     #guess-section input {
-      width: 120px;
+      width: 40%;
       padding: 0.4rem;
-      font-size: 1rem;
+      font-size: 3rem;
       margin-right: 0.5rem;
     }
 
     #votes ul {
-      max-height: 200px;
       overflow-y: auto;
       border: 1px solid #444;
       padding: 0.5rem;
+    }
+
+    .step-highlight {
+      border: 2px solid red !important;
     }
   </style>
 </head>
 <body>
 
-  <div id="left">
+  <div id="column">
     <div id="status">Not connected</div>
 
     <div class="section">
-      <h2>Connected Players</h2>
-      <ul id="player-list"></ul>
+      <ul id="player-list" class="scroll-list"></ul>
+      <button class="btn" onclick="requestPoints()">Request Points</button>
       <button class="btn" onclick="resetConnections()">Reset Connections</button>
     </div>
 
     <div class="section">
-      <h2>Round Control</h2>
-      <button class="btn" onclick="reset()">Reset Round</button>
-      <button class="btn" onclick="displayAnswer()">Display Answer</button>
-      <button class="btn" onclick="displayVoters()">Display Voters</button>
-      <button class="btn" onclick="requestPoints()">Request Points</button>
-      <button class="btn" onclick="startVoting()">Start Voting</button>
+      <span id="selected-hotseat"></span>
+      <ul id="question-list" class="scroll-list"></ul>
+    </div>
+
+    <div class="section" id="guess-section">
+      <input type="number" id="guess-input" placeholder="Enter guess">
+      <button class="btn" onclick="sendGuess()">Send Guess</button>
+    </div>
+    <div class="section">
+      <button class="btn" id="resetRound" onclick="reset()">Reset Round</button>
+      <button class="btn" id = "displayVoters" onclick="displayVoters()">Display Voters</button>
+      <button class="btn unhighlight" id="displayAnswer" onclick="displayAnswer()" disabled="">Display Answer</button>
     </div>
 
     
 
-    <div class="section" id="guess-section">
-      <h2>Initial Guess</h2>
-      <input type="number" id="guess-input" placeholder="Enter guess">
-      <button class="btn" onclick="sendGuess()">Send Guess</button>
-    </div>
 
     <div class="section" id="votes">
       <h2>Votes <span id="vote-progress"></span></h2>
-      <ul id="vote-list"></ul>
+      <ul id="vote-list" class="scroll-list" style="height: 400px;"></ul>
     </div>
-  </div>
 
-  <div id="right">
-    <div class="section">
-      <h2>Questions <span id="selected-hotseat"></span></h2>
-      <ul id="question-list"></ul>
-    </div>
+    
   </div>
 
   <script>
@@ -158,11 +167,65 @@
     let currentHotseat = null;
     let voteCount = 0;
 
+    let votesDisplayed = false;
+
     const playerList = document.getElementById("player-list");
     const questionList = document.getElementById("question-list");
     const hotseatDisplay = document.getElementById("selected-hotseat");
     const voteList = document.getElementById("vote-list");
     const voteProgress = document.getElementById("vote-progress");
+
+    var stepIndex = 0;
+    
+    function setStep(index){
+      //highlighting controls relevant to the current step
+      stepIndex = index;
+
+      const stepsInOrder = [
+        document.getElementById("player-list"),
+        document.getElementById("question-list"),
+        document.getElementById("guess-section"),
+        document.getElementById("votes"),
+        document.getElementById("displayVoters"),
+        document.getElementById("displayAnswer"),
+        document.getElementById("resetRound")
+      ]
+
+      //remove highlight from all steps
+      stepsInOrder.forEach((step, i) => {
+        step.classList.remove("step-highlight");
+        if (i === stepIndex) {
+          step.classList.add("step-highlight");
+        }
+      });
+      
+
+    }
+
+    var testMode = false; //set to true to disable network communication and log messages instead
+    function startTesting(){
+      testMode = true;
+      console.log("Test mode enabled. Network communication disabled.");
+      document.getElementById("status").innerText = "Test mode enabled.";
+      //simulate everyone connecting
+      //get the names from the questions
+      questions.forEach(q => connected(q.intendedTeacher));
+    }
+
+    function simulateVoting(){
+      if(testMode){
+        console.log("Simulating voting...");
+        //simulate votes
+        connectedPlayers.forEach(name => {
+          if(name === currentHotseat) return; //skip hotseat
+          //randomly choose higher or lower
+          const vote = Math.random() < 0.5 ? "higher" : "lower";
+          voteReceive(name, vote);
+        });
+      }
+    }
+
+    setStep(0);
 
     function connected(name) {
       if (connectedPlayers.has(name)) return;
@@ -208,6 +271,8 @@
       currentHotseat = name;
       hotseatDisplay.textContent = `(Hotseat: ${name})`;
 
+      setStep(1);
+
       [...questionList.children].forEach(li => {
         const q = questions[li.dataset.index];
         if (q.intendedTeacher === name.toLowerCase()) {
@@ -226,6 +291,8 @@
       const q = questions[index];
       const confirmSend = confirm(`Send this question?\n\n${q.string}`);
       if (!confirmSend) return;
+      setStep(2);
+
 
       console.log(`sendQuestion(${index}) →`, q);
       sendMessage({ type: "sendQuestion", questionID: index });
@@ -243,9 +310,14 @@
         alert("Please enter a valid number.");
         return;
       }
+      setStep(3);
 
       console.log(`sendGuess(${val})`);
       sendMessage({ type: "guess", guess: val });
+      setTimeout(() => {
+        startVoting();
+        
+      }, 1000);
       // socket.emit("guess", val);
     }
 
@@ -259,9 +331,25 @@
 
     function updateVoteProgress() {
       voteProgress.textContent = `Voted: ${voteCount} / ${connectedPlayers.size}`;
+      if(voteCount == connectedPlayers.size-1){
+
+        if(voteCount == 0){
+          //false positive, no one has voted yet
+          return;
+        }
+        //everyone has voted except the hotseat
+        setStep(4);
+        
+
+      }
     }
 
     function reset() {
+      setStep(0);
+      votesDisplayed = false;
+      let displayAnswerButton = document.getElementById("displayAnswer");
+      displayAnswerButton.disabled = true; //cannot display answer until voting is done
+      displayAnswerButton.classList.add("unhighlight");
       console.log("reset()");
       voteList.innerHTML = "";
       voteCount = 0;
@@ -272,13 +360,19 @@
 
     function displayAnswer() {
       console.log("displayAnswer()");
+      setStep(6);
       sendMessage({ type: "displayAnswer" });
 
       // socket.emit("displayAnswer");
     }
 
     function displayVoters() {
+      votesDisplayed = true;
+      let displayAnswerButton = document.getElementById("displayAnswer");
+      displayAnswerButton.disabled = false; //can display answer now
+      displayAnswerButton.classList.remove("unhighlight");
       console.log("displayVoters()");
+      setStep(5);
         sendMessage({ type: "displayVoters" });
       // socket.emit("displayVoters");
     }
@@ -302,6 +396,10 @@
     //sendMessages
     function sendMessage(data){
         const message = JSON.stringify(data);
+        if(testMode){
+          console.log("Sending message:", message);
+          return;
+        }
         socket.send(message);
     }
 
